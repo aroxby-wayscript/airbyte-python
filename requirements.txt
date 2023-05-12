@@ -1,0 +1,1 @@
+airbyteoss @ git+https://github.com/speakeasy-sdks/airbyte-oss-python.git@a1825ad33bd6a22fa4429c3239f8f23c7994edde
