@@ -145,6 +145,7 @@ def get_connection_sync_catalog(client, connection_id):
         with_refreshed_catalog=True,
     )
 
+    # TODO: Is there anyway to get the sync catalog using the standard API?
     res = client.web_backend.web_backend_get_connection(req)
 
     if not res.web_backend_connection_read:
