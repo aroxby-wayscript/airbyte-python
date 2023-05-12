@@ -174,31 +174,37 @@ def set_connection_sync_catalog(client, connection_id, sync_catalog):
         )
 
 
-def create_normalization_operation(client, connection_id):
-    req = shared.WebBackendConnectionUpdate(
-        connection_id=connection_id,
-        operations=[
-            # FIXME: I used this CreateOrUpdate because I thought it was
-            # workspace specific.  If this is connection specific then
-            # we can just create a new one as we know the connection is new.
-            # This is hard to verify because this is no api method to list
-            # all operations (or all operations in a workspace).
-            shared.WebBackendOperationCreateOrUpdate(
-                workspace_id=AB_WORKSPACE_ID,
-                name='Normalization',
-                operator_configuration=shared.OperatorConfiguration(
-                    operator_type=shared.OperatorTypeEnum.NORMALIZATION,
-                    normalization=shared.OperatorNormalization(
-                        option=shared.OperatorNormalizationOptionEnum.BASIC,
-                    ),
-                ),
+def create_normalization_operation(client):
+    req = shared.OperationCreate(
+        workspace_id=AB_WORKSPACE_ID,
+        name='Normalization',
+        operator_configuration=shared.OperatorConfiguration(
+            operator_type=shared.OperatorTypeEnum.NORMALIZATION,
+            normalization=shared.OperatorNormalization(
+                option=shared.OperatorNormalizationOptionEnum.BASIC,
             ),
-        ],
+        ),
     )
 
-    res = client.web_backend.web_backend_update_connection(req)
+    res = client.operation.create_operation(req)
 
-    if not res.web_backend_connection_read:
+    if not res.operation_read:
+        raise APIError(
+            (res.raw_response.status_code, res.raw_response.content)
+        )
+
+    return res.operation_read.operation_id
+
+
+def add_connection_operation(client, connection_id, operation_id):
+    req = shared.ConnectionUpdate(
+        connection_id=connection_id,
+        operation_ids=[operation_id],
+    )
+
+    res = client.connection.update_connection(req)
+
+    if not res.connection_read:
         raise APIError(
             (res.raw_response.status_code, res.raw_response.content)
         )
@@ -240,7 +246,8 @@ def main():
     select_all_streams(sync_catalog)
     set_connection_sync_catalog(client, connection_id, sync_catalog)
 
-    create_normalization_operation(client, connection_id)
+    operation_id = create_normalization_operation(client)
+    add_connection_operation(client, connection_id, operation_id)
 
     # Note: This starts a sync
     set_connection_schedule(client, connection_id)
